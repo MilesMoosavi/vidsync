@@ -1,0 +1,273 @@
+/* ===== Navbar – Cineby / Netflix-inspired clean bar ===== */
+
+.navbar {
+  position: relative;
+  z-index: 100;
+  width: 100%;
+  padding: 12px 0 0 0;
+}
+
+.navbar-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+  height: 48px;
+}
+
+/* ---------- Left section ---------- */
+
+.navbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: default;
+  user-select: none;
+}
+
+.navbar-logo-icon {
+  color: #e50914;
+}
+
+.navbar-brand-name {
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.3px;
+}
+
+.navbar-separator {
+  color: #333;
+  font-weight: 300;
+  font-size: 20px;
+  user-select: none;
+}
+
+.navbar-room-title-wrapper {
+  display: inline-grid;
+  grid-template-columns: minmax(60px, max-content);
+  align-items: center;
+  position: relative;
+}
+
+.navbar-room-title-dummy {
+  grid-area: 1 / 1;
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  padding: 4px 4px 4px 0;
+  visibility: hidden;
+  white-space: pre;
+  pointer-events: none;
+}
+
+.navbar-room-title-input {
+  grid-area: 1 / 1;
+  width: 0;
+  min-width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid transparent;
+  color: #a0a0a0;
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  padding: 4px 4px 4px 0;
+  outline: none;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.navbar-room-title-input:hover {
+  border-bottom-color: #333;
+}
+
+.navbar-room-title-input:focus {
+  color: #ffffff;
+  border-bottom-color: #e50914;
+}
+
+/* ---------- Shared icon button ---------- */
+
+.navbar-icon-btn {
+  background: none;
+  border: none;
+  color: #808080;
+  cursor: pointer;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  border-radius: 4px;
+  transition: color 0.15s;
+}
+
+.navbar-icon-btn:hover {
+  color: #ffffff;
+}
+
+.navbar-copy-btn {
+  margin-left: -10px;
+}
+
+/* ---------- Right section ---------- */
+
+.navbar-right {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+/* ---------- Paste input ---------- */
+
+.navbar-paste-input {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #222;
+  color: #ffffff;
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  font-size: 13px;
+  padding: 6px 24px 6px 4px;
+  width: 350px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.navbar-clear-btn {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #555555;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s, color 0.15s, background-color 0.15s;
+}
+
+.navbar-paste-container:hover .navbar-clear-btn {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.navbar-clear-btn:hover {
+  color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.navbar-paste-input::placeholder {
+  color: #444;
+}
+
+.navbar-paste-input:hover {
+  border-bottom-color: #333;
+}
+
+.navbar-paste-input:focus {
+  border-bottom-color: #e50914;
+}
+
+/* ---------- Paste container & dropdown ---------- */
+
+.navbar-paste-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.navbar-paste-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 350px;
+  background-color: #0f0f0f;
+  border: 1px solid #222;
+  border-radius: 4px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.navbar-paste-dropdown-item {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  color: #a0a0a0;
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  font-size: 12px;
+  padding: 8px 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.navbar-paste-dropdown-item:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+.navbar-paste-dropdown-thumb {
+  width: 72px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 4px;
+  background-color: #000;
+  flex-shrink: 0;
+  border: 1px solid #222;
+}
+
+.navbar-paste-dropdown-meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0; /* allows text truncation inside flexbox */
+}
+
+.navbar-paste-dropdown-title {
+  color: #ffffff;
+  font-weight: 500;
+  font-size: 13px;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.navbar-paste-dropdown-url {
+  color: #555555;
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---------- User counter ---------- */
+
+.navbar-user-counter {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  font-size: 13px;
+  color: #808080;
+  padding: 4px 8px;
+}
+
+
