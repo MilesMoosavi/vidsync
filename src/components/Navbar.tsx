@@ -3,10 +3,14 @@
 import React, { useState, useRef, useEffect } from "react";
 import { User, Link, Play, X } from "lucide-react";
 import NextLink from "next/link";
-import { fetchYouTubeMetadata } from "@/lib/media";
+import { fetchMediaMetadata } from "@/lib/media";
 import "./Navbar.css";
 
-const DEFAULT_YT_LINK = "https://www.youtube.com/watch?v=XIMLoLxmTDw";
+const DEFAULT_MEDIA_LINKS = [
+  "https://www.youtube.com/watch?v=XIMLoLxmTDw",
+  "https://www.youtube.com/watch?v=ucZl6vQ_8Uo",
+  "https://streamable.com/moo"
+];
 
 interface NavbarProps {
   roomTitle?: string;
@@ -23,7 +27,7 @@ export default function Navbar({
   const [localTitle, setLocalTitle] = useState(roomTitle);
   const [pasteValue, setPasteValue] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
-  const [ytMetadata, setYtMetadata] = useState<{ title: string; thumbnailUrl: string } | null>(null);
+  const [mediaMetadata, setMediaMetadata] = useState<Record<string, { title: string; thumbnailUrl: string }>>({});
   const [showTooltip, setShowTooltip] = useState(false);
   const [showCopyTooltip, setShowCopyTooltip] = useState(false);
   const [showProfileTooltip, setShowProfileTooltip] = useState(false);
@@ -63,11 +67,17 @@ export default function Navbar({
     setShowDropdown(false);
   };
 
-  // Fetch YouTube title and thumbnail dynamically
+  // Fetch media title and thumbnail dynamically
   useEffect(() => {
     const fetchMetadata = async () => {
-      const metadata = await fetchYouTubeMetadata(DEFAULT_YT_LINK);
-      if (metadata) setYtMetadata(metadata);
+      const metadataMap: Record<string, { title: string; thumbnailUrl: string }> = {};
+      for (const link of DEFAULT_MEDIA_LINKS) {
+        const meta = await fetchMediaMetadata(link);
+        if (meta) {
+          metadataMap[link] = meta;
+        }
+      }
+      setMediaMetadata(metadataMap);
     };
 
     fetchMetadata();
@@ -163,28 +173,34 @@ export default function Navbar({
             )}
             {showDropdown && (
               <div className="navbar-paste-dropdown">
-                <button
-                  type="button"
-                  className="navbar-paste-dropdown-item"
-                  onClick={() => selectDropdownItem(DEFAULT_YT_LINK)}
-                >
-                  {ytMetadata?.thumbnailUrl && (
-                    /* eslint-disable-next-line @next/next/no-img-element */
-                    <img
-                      src={ytMetadata.thumbnailUrl}
-                      alt="Thumbnail"
-                      className="navbar-paste-dropdown-thumb"
-                    />
-                  )}
-                  <div className="navbar-paste-dropdown-meta">
-                    <span className="navbar-paste-dropdown-title">
-                      {ytMetadata?.title || "Video details..."}
-                    </span>
-                    <span className="navbar-paste-dropdown-url">
-                      {DEFAULT_YT_LINK}
-                    </span>
-                  </div>
-                </button>
+                {DEFAULT_MEDIA_LINKS.map((link) => {
+                  const meta = mediaMetadata[link];
+                  return (
+                    <button
+                      key={link}
+                      type="button"
+                      className="navbar-paste-dropdown-item"
+                      onClick={() => selectDropdownItem(link)}
+                    >
+                      {meta?.thumbnailUrl && (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img
+                          src={meta.thumbnailUrl}
+                          alt="Thumbnail"
+                          className="navbar-paste-dropdown-thumb"
+                        />
+                      )}
+                      <div className="navbar-paste-dropdown-meta">
+                        <span className="navbar-paste-dropdown-title">
+                          {meta?.title || "Video details..."}
+                        </span>
+                        <span className="navbar-paste-dropdown-url">
+                          {link}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>

@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { Play, Pause, Volume2, VolumeX, Maximize, RotateCcw, Settings, Film } from "lucide-react";
-import { getYouTubeId, isDirectVideoUrl } from "@/lib/media";
+import { getYouTubeId, isDirectVideoUrl, isOEmbedProviderUrl, fetchOEmbedMetadata } from "@/lib/media";
 import "./VideoPlayer.css";
 
 // The YouTube IFrame API attaches its own YT namespace to window at runtime —
@@ -72,6 +72,9 @@ export default function VideoPlayer({ videoUrl = "" }: VideoPlayerProps) {
   const [volume, setVolume] = useState(80);
   const [prevVolume, setPrevVolume] = useState(80);
   const [progress, setProgress] = useState(30); // dummy progress percentage
+  // Tagged with the URL it was fetched for, so a stale result from a since-changed
+  // videoUrl is never rendered without needing a synchronous reset inside the effect below.
+  const [oembedResult, setOembedResult] = useState<{ forUrl: string; html: string } | null>(null);
 
   const handlePlayToggle = () => setIsPlaying(!isPlaying);
   const handleRestart = () => setProgress(0);
@@ -89,7 +92,24 @@ export default function VideoPlayer({ videoUrl = "" }: VideoPlayerProps) {
 
   const ytId = getYouTubeId(videoUrl);
   const isDirectVideo = isDirectVideoUrl(videoUrl);
-  const hasValidMedia = ytId || isDirectVideo;
+  const isOEmbedTier = isOEmbedProviderUrl(videoUrl);
+  const oembedHtml = isOEmbedTier && oembedResult?.forUrl === videoUrl ? oembedResult.html : null;
+  const hasValidMedia = ytId || isDirectVideo || isOEmbedTier;
+
+  // Tier 2 (oEmbed, no control SDK): fetch the provider's embed HTML whenever videoUrl
+  // changes to a Tier 2 link. No JS handle here — just native controls, no sync.
+  useEffect(() => {
+    if (!isOEmbedTier) return;
+
+    let cancelled = false;
+    fetchOEmbedMetadata(videoUrl).then((result) => {
+      if (!cancelled && result?.html) setOembedResult({ forUrl: videoUrl, html: result.html });
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOEmbedTier, videoUrl]);
 
   // Mounts (or swaps the loaded video on) a YT.Player instance whenever ytId changes.
   // Using the IFrame API instead of a raw <iframe src> gives us a JS handle (play/pause/seek)
@@ -173,7 +193,17 @@ export default function VideoPlayer({ videoUrl = "" }: VideoPlayerProps) {
           />
         )}
 
-        {!ytId && !isDirectVideo && (
+        {/* Tier 2: no JS control SDK, so we render the provider's own embed HTML as-is —
+            native controls only, no cross-user sync. Safe to inject: html only ever comes
+            from noembed for a URL that already passed the Tier 2 domain allowlist. */}
+        {!ytId && !isDirectVideo && oembedHtml && (
+          <div
+            className="player-video player-oembed"
+            dangerouslySetInnerHTML={{ __html: oembedHtml }}
+          />
+        )}
+
+        {!ytId && !isDirectVideo && !oembedHtml && (
           <div className="player-empty-state">
             <Film className="player-empty-icon" size={32} />
             <span className="player-empty-text">No media loaded</span>
