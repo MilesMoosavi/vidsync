@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import VideoPlayer from "@/components/VideoPlayer";
+import { isSupportedMediaUrl } from "@/lib/media";
 import { AlertCircle, X } from "lucide-react";
 
 export default function Home() {
@@ -15,10 +16,7 @@ export default function Home() {
       return;
     }
 
-    const isYouTube = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/.test(url);
-    const isDirectVideo = /\.(mp4|webm|ogg|mov|m4v)($|\?)/i.test(url);
-
-    if (!isYouTube && !isDirectVideo) {
+    if (!isSupportedMediaUrl(url)) {
       setToastMessage("Failed to load media: Unsupported format or link structure");
       setVideoUrl("");
     } else {

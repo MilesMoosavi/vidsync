@@ -15,7 +15,7 @@ Clean, minimal, premium. Think Cineby and Netflix, not a 2015 admin dashboard. W
 ## Color Palette
 
 | Token | Hex | Usage |
-|---|---|---|
+| --- | --- | --- |
 | Background | `#080808` | Page body |
 | Text primary | `#ffffff` | Headings, active text |
 | Text secondary | `#a0a0a0` | Inactive labels, room titles |

@@ -1,8 +1,62 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Play, Pause, Volume2, VolumeX, Maximize, RotateCcw, Settings, Film } from "lucide-react";
+import { getYouTubeId, isDirectVideoUrl } from "@/lib/media";
 import "./VideoPlayer.css";
+
+// The YouTube IFrame API attaches its own YT namespace to window at runtime —
+// there's no npm package for it, so we type just the surface we call.
+interface YouTubePlayer {
+  loadVideoById(videoId: string): void;
+  destroy(): void;
+}
+
+interface YouTubePlayerOptions {
+  videoId: string;
+  width?: string | number;
+  height?: string | number;
+  playerVars?: { autoplay?: 0 | 1; controls?: 0 | 1; rel?: 0 | 1 };
+}
+
+interface YouTubeNamespace {
+  Player: new (element: HTMLElement, options: YouTubePlayerOptions) => YouTubePlayer;
+}
+
+declare global {
+  interface Window {
+    YT: YouTubeNamespace;
+    onYouTubeIframeAPIReady: () => void;
+  }
+}
+
+let youtubeApiPromise: Promise<void> | null = null;
+
+// Injects the YouTube IFrame API script once per page load and resolves when
+// window.YT is ready to construct players. Repeat calls reuse the same promise
+// instead of re-adding the script tag.
+function loadYouTubeApi(): Promise<void> {
+  if (youtubeApiPromise) return youtubeApiPromise;
+
+  youtubeApiPromise = new Promise((resolve) => {
+    if (window.YT && window.YT.Player) {
+      resolve();
+      return;
+    }
+
+    const previousReadyCallback = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = () => {
+      if (previousReadyCallback) previousReadyCallback();
+      resolve();
+    };
+
+    const script = document.createElement("script");
+    script.src = "https://www.youtube.com/iframe_api";
+    document.head.appendChild(script);
+  });
+
+  return youtubeApiPromise;
+}
 
 interface VideoPlayerProps {
   videoUrl?: string;
@@ -10,7 +64,9 @@ interface VideoPlayerProps {
 
 export default function VideoPlayer({ videoUrl = "" }: VideoPlayerProps) {
   const progressContainerRef = useRef<HTMLDivElement>(null);
-  
+  const youtubeMountRef = useRef<HTMLDivElement>(null);
+  const youtubePlayerRef = useRef<YouTubePlayer | null>(null);
+
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [volume, setVolume] = useState(80);
@@ -31,15 +87,48 @@ export default function VideoPlayer({ videoUrl = "" }: VideoPlayerProps) {
     }
   };
 
-  const getYouTubeId = (url: string) => {
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-    const match = url.match(regExp);
-    return match && match[2].length === 11 ? match[2] : null;
-  };
-
   const ytId = getYouTubeId(videoUrl);
-  const isDirectVideo = /\.(mp4|webm|ogg|mov|m4v)($|\?)/i.test(videoUrl);
+  const isDirectVideo = isDirectVideoUrl(videoUrl);
   const hasValidMedia = ytId || isDirectVideo;
+
+  // Mounts (or swaps the loaded video on) a YT.Player instance whenever ytId changes.
+  // Using the IFrame API instead of a raw <iframe src> gives us a JS handle (play/pause/seek)
+  // for cross-user sync later, instead of just an embedded, uncontrollable player.
+  useEffect(() => {
+    if (!ytId) return;
+
+    let cancelled = false;
+
+    loadYouTubeApi().then(() => {
+      if (cancelled || !youtubeMountRef.current) return;
+
+      if (youtubePlayerRef.current) {
+        youtubePlayerRef.current.loadVideoById(ytId);
+      } else {
+        youtubePlayerRef.current = new window.YT.Player(youtubeMountRef.current, {
+          videoId: ytId,
+          width: "100%",
+          height: "100%",
+          playerVars: { autoplay: 0, controls: 1, rel: 0 },
+        });
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [ytId]);
+
+  // Destroys the player only when VideoPlayer itself unmounts. The mount div stays in the
+  // DOM (just hidden) between YouTube links instead of being conditionally unmounted, since
+  // the IFrame API replaces that div with its own iframe outside React's knowledge — letting
+  // React try to remove/replace it on a ytId change causes a removeChild DOM mismatch.
+  useEffect(() => {
+    return () => {
+      youtubePlayerRef.current?.destroy();
+      youtubePlayerRef.current = null;
+    };
+  }, []);
 
   const handleProgressScrub = (clientX: number) => {
     if (!progressContainerRef.current) return;
@@ -68,16 +157,13 @@ export default function VideoPlayer({ videoUrl = "" }: VideoPlayerProps) {
   return (
     <div className="player-container">
       <div className="player-viewport">
-        {ytId ? (
-          <iframe
-            className="player-video"
-            src={`https://www.youtube.com/embed/${ytId}?autoplay=0&controls=1&rel=0`}
-            title="Video Playback"
-            frameBorder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            allowFullScreen
-          ></iframe>
-        ) : isDirectVideo ? (
+        {/* Always mounted (just hidden when inactive) — the IFrame API owns this div's
+            contents once created, so it must never be conditionally unmounted by React. */}
+        <div className="player-video" style={{ display: ytId ? "block" : "none" }}>
+          <div ref={youtubeMountRef} style={{ width: "100%", height: "100%" }} />
+        </div>
+
+        {!ytId && isDirectVideo && (
           <video
             className="player-video"
             src={videoUrl}
@@ -85,7 +171,9 @@ export default function VideoPlayer({ videoUrl = "" }: VideoPlayerProps) {
             preload="auto"
             playsInline
           />
-        ) : (
+        )}
+
+        {!ytId && !isDirectVideo && (
           <div className="player-empty-state">
             <Film className="player-empty-icon" size={32} />
             <span className="player-empty-text">No media loaded</span>
